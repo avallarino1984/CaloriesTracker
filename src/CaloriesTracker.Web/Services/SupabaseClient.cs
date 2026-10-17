@@ -67,6 +67,20 @@ public sealed class SupabaseClient(SupabaseOptions options, IJSRuntime js)
         return _session is not null;
     }
 
+    /// <summary>Signs in with email + password (account created in the Supabase dashboard, no email needed).</summary>
+    public async Task SignInWithPasswordAsync(string email, string password)
+    {
+        var response = await SendAsync(HttpMethod.Post, "auth/v1/token?grant_type=password",
+            new { email = email.Trim(), password }, authorized: false);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            // Supabase answers 400 "Invalid login credentials" for a wrong email or password.
+            throw new SupabaseException("Courriel ou mot de passe invalide.");
+        }
+        await EnsureSuccessAsync(response, "Connexion impossible");
+        await StoreSessionAsync(await ReadSessionAsync(response));
+    }
+
     /// <summary>Emails a one-time code (creates the account on first use).</summary>
     public async Task SendCodeAsync(string email)
     {

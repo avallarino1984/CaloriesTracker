@@ -23,11 +23,20 @@
             <button class="btn" @onclick="SignOut">Se déconnecter</button>
         </div>
     }
+    else if (!_useEmailLink)
+    {
+        <p class="muted small">Connecte-toi pour retrouver les mêmes données sur l'iPhone et l'ordi.</p>
+        <label>Courriel<input type="email" autocomplete="username" inputmode="email" @bind="_email" @bind:event="oninput" /></label>
+        <label>Mot de passe<input type="password" autocomplete="current-password" @bind="_password" @bind:event="oninput" /></label>
+        <button class="btn primary full" disabled="@(_busy || !_email.Contains('@') || _password.Length == 0)" @onclick="SignInWithPassword">Se connecter</button>
+        <button class="link" @onclick="() => _useEmailLink = true">Recevoir plutôt un lien par courriel</button>
+    }
     else if (!_codeSent)
     {
-        <p class="muted small">Connecte-toi pour retrouver les mêmes données sur l'iPhone et l'ordi. Tu recevras un courriel de connexion.</p>
+        <p class="muted small">Tu recevras un courriel de connexion (2 courriels par heure au maximum).</p>
         <label>Courriel<input type="email" autocomplete="email" inputmode="email" @bind="_email" @bind:event="oninput" /></label>
         <button class="btn primary full" disabled="@(_busy || !_email.Contains('@'))" @onclick="SendCode">Recevoir le courriel</button>
+        <button class="link" @onclick="() => _useEmailLink = false">Utiliser un mot de passe</button>
     }
     else
     {
@@ -48,6 +57,8 @@
 @code {
     private string _email = "";
     private string _code = "";
+    private string _password = "";
+    private bool _useEmailLink;
     private bool _codeSent;
     private bool _busy;
     private string? _message;
@@ -78,6 +89,12 @@
     {
         await State.SignInAsync(_email, _code);
         _codeSent = false;
+    });
+
+    private async Task SignInWithPassword() => await Run(async () =>
+    {
+        await State.SignInWithPasswordAsync(_email, _password);
+        _password = "";
     });
 
     private async Task SignOut() => await Run(State.SignOutAsync);

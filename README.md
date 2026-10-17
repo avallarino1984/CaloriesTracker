@@ -48,7 +48,7 @@ Safari → l'URL GitHub Pages → **Partager** → **Sur l'écran d'accueil**. L
 ## Données et synchro
 
 - Toujours enregistrées d'abord dans le navigateur (localStorage) : l'app marche hors ligne.
-- Avec Supabase configuré et une connexion (Profil → Synchronisation, code reçu par courriel), le même document est synchronisé entre appareils :
+- Avec Supabase configuré et une connexion (Profil → Synchronisation, courriel + mot de passe), le même document est synchronisé entre appareils :
   - au démarrage, après chaque modification, et quand l'app revient au premier plan ;
   - règle « dernière modification gagne » ; à la première connexion d'un appareil, la copie du nuage gagne si elle existe.
 - Profil → **Exporter (JSON)** reste disponible comme copie de secours.
@@ -57,7 +57,8 @@ Safari → l'URL GitHub Pages → **Partager** → **Sur l'écran d'accueil**. L
 
 1. Créer un projet sur supabase.com (plan Free).
 2. SQL Editor → exécuter `supabase/setup.sql` (table `user_data` + règles RLS : chacun ne voit que sa ligne).
-3. Authentication → URL Configuration : **Site URL** = l'adresse GitHub Pages de l'app (et l'ajouter aux Redirect URLs, avec `http://localhost:5260/`).
+3. **Connexion recommandée : mot de passe.** Authentication → Users → **Add user → Create new user** (courriel + mot de passe, **Auto Confirm User** coché), puis Authentication → Sign In / Providers → décocher **Allow new users to sign up**. Aucun courriel n'est envoyé, donc pas de quota.
+   Option de secours, lien par courriel : Authentication → URL Configuration : **Site URL** = l'adresse GitHub Pages de l'app (et l'ajouter aux Redirect URLs, avec `http://localhost:5260/`).
    Connexion : l'app accepte le code à 6 chiffres (si le modèle de courriel contient `{{ .Token }}`, ce qui exige un SMTP perso sur le plan gratuit), **le lien du courriel collé sans l'ouvrir**, ou l'adresse obtenue après l'avoir ouvert. Sur l'ordi, cliquer le lien connecte directement l'app ; sur l'iPhone (app d'écran d'accueil, stockage séparé de Safari), on colle le lien dans Profil → Synchronisation.
 4. Remplir `src/CaloriesTracker.Web/wwwroot/appsettings.json` avec la Project URL et la clé **anon / publishable** (publiques par conception). Ne jamais y mettre la clé service_role / secret.
 

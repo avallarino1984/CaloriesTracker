@@ -186,6 +186,13 @@ public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
         }
     }
 
+    /// <summary>Signs in with a password, then reconciles like <see cref="SignInAsync"/>.</summary>
+    public async Task SignInWithPasswordAsync(string email, string password)
+    {
+        await cloud.SignInWithPasswordAsync(email, password);
+        await SyncAsync(firstSyncOnDevice: true);
+    }
+
     public async Task SignOutAsync()
     {
         await cloud.SignOutAsync();
