@@ -1,0 +1,103 @@
+@page "/ajouter"
+@inject AppState State
+@inject NavigationManager Nav
+
+<PageTitle>Ajouter · Calories</PageTitle>
+
+<h1>Ajouter un repas</h1>
+
+<section class="card">
+    <h2>Coller depuis Claude</h2>
+    <p class="muted small">Colle la réponse complète ou seulement les lignes <code>MEAL|…</code>. Plusieurs lignes à la fois, c'est correct.</p>
+    <textarea rows="5" placeholder="MEAL|2026-10-17|dejeuner|Arepa, oeuf, café|440|21|43|21"
+              @bind="_pasted" @bind:event="oninput" @bind:after="Parse"></textarea>
+
+    @if (_results.Count > 0)
+    {
+        <ul class="preview">
+            @foreach (var r in _results)
+            {
+                @if (r.Meal is { } m)
+                {
+                    <li class="ok">
+                        <span>@Fmt.Day(m.Date) · @Fmt.MealLabel(m.Type) — @m.Description</span>
+                        <strong>@Fmt.Kcal(m.Kcal) kcal</strong>
+                    </li>
+                }
+                else
+                {
+                    <li class="err">Ligne @r.LineNumber : @r.Error</li>
+                }
+            }
+        </ul>
+        <button class="btn primary full" disabled="@(ValidMeals.Count == 0)" @onclick="SavePasted">
+            Ajouter @ValidMeals.Count repas
+        </button>
+    }
+    else if (!string.IsNullOrWhiteSpace(_pasted))
+    {
+        <p class="err">Aucune ligne MEAL trouvée.</p>
+    }
+</section>
+
+<section class="card">
+    <h2>Saisie manuelle</h2>
+    <div class="grid2">
+        <label>Date<input type="date" @bind="_manual.Date" /></label>
+        <label>Repas
+            <select @bind="_manual.Type">
+                @foreach (var t in Enum.GetValues<MealType>())
+                {
+                    <option value="@t">@Fmt.MealLabel(t)</option>
+                }
+            </select>
+        </label>
+    </div>
+    <label>Description<input type="text" @bind="_manual.Description" placeholder="Poulet, riz, haricots" /></label>
+    <div class="grid4">
+        <label>kcal<input type="number" inputmode="decimal" min="0" @bind="_manual.Kcal" /></label>
+        <label>Prot. g<input type="number" inputmode="decimal" min="0" @bind="_manual.ProteinG" /></label>
+        <label>Gluc. g<input type="number" inputmode="decimal" min="0" @bind="_manual.CarbsG" /></label>
+        <label>Lip. g<input type="number" inputmode="decimal" min="0" @bind="_manual.FatG" /></label>
+    </div>
+    <button class="btn full" disabled="@(_manual.Kcal <= 0)" @onclick="SaveManual">Ajouter</button>
+</section>
+
+@code {
+    private string? _pasted;
+    private List<MealParseResult> _results = [];
+    private Meal _manual = NewManual();
+
+    private List<Meal> ValidMeals => _results.Where(r => r.Meal is not null).Select(r => r.Meal!).ToList();
+
+    private static Meal NewManual() => new() { Date = AppState.Today, Type = GuessMealType() };
+
+    // Pre-select the meal slot from the time of day.
+    private static MealType GuessMealType()
+    {
+        int hour = DateTime.Now.Hour;
+        if (hour < 11) return MealType.Dejeuner;
+        if (hour < 15) return MealType.Diner;
+        if (hour >= 17 && hour < 21) return MealType.Souper;
+        return MealType.Collation;
+    }
+
+    private void Parse() => _results = MealLineParser.ParseMany(_pasted).ToList();
+
+    private async Task SavePasted()
+    {
+        await State.AddMealsAsync(ValidMeals);
+        Nav.NavigateTo("");
+    }
+
+    private async Task SaveManual()
+    {
+        if (string.IsNullOrWhiteSpace(_manual.Description))
+        {
+            _manual.Description = Fmt.MealLabel(_manual.Type);
+        }
+        await State.AddMealsAsync([_manual]);
+        _manual = NewManual();
+        Nav.NavigateTo("");
+    }
+}

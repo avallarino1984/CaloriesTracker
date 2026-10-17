@@ -1,0 +1,125 @@
+@page "/poids"
+@inject AppState State
+
+<PageTitle>Poids · Calories</PageTitle>
+
+<h1>Poids</h1>
+
+<section class="card">
+    <h2>Nouvelle pesée</h2>
+    <p class="muted small">Recopie les valeurs de l'app Renpho. Une pesée par jour : la nouvelle remplace l'ancienne.</p>
+    <label>Date<input type="date" @bind="_entry.Date" /></label>
+    <div class="grid2">
+        <label>Poids (kg)<input type="number" inputmode="decimal" step="0.05" min="0" @bind="_entry.WeightKg" /></label>
+        <label>Gras (%)<input type="number" inputmode="decimal" step="0.1" min="0" max="70" @bind="_entry.BodyFatPercent" /></label>
+    </div>
+    <button class="btn primary full" disabled="@(_entry.WeightKg <= 0)" @onclick="Save">Enregistrer</button>
+</section>
+
+@if (_history.Count > 0)
+{
+    var first = _history[^1];
+    var last = _history[0];
+    double delta = last.WeightKg - first.WeightKg;
+    double toGoal = last.WeightKg - State.Profile.GoalWeightKg;
+
+    <section class="card">
+        <div class="hero-stats">
+            <div><span class="muted">Actuel</span><strong>@Fmt.Kg(last.WeightKg)</strong></div>
+            <div><span class="muted">Depuis le début</span><strong class="@(delta <= 0 ? "good" : "bad")">@(delta > 0 ? "+" : "")@Fmt.Kg(delta)</strong></div>
+            <div><span class="muted">Reste</span><strong>@Fmt.Kg(Math.Max(0, toGoal))</strong></div>
+        </div>
+        @if (_history.Count >= 2)
+        {
+            <svg class="spark" viewBox="0 0 300 80" preserveAspectRatio="none" role="img" aria-label="Évolution du poids">
+                <line x1="0" x2="300" y1="@Y(State.Profile.GoalWeightKg)" y2="@Y(State.Profile.GoalWeightKg)" class="goal" />
+                <polyline points="@SparkPoints()" />
+            </svg>
+            <p class="muted small center">Ligne pointillée : objectif @Fmt.Kg(State.Profile.GoalWeightKg)</p>
+        }
+    </section>
+
+    <section class="card">
+        <h2>Historique</h2>
+        <ul class="meal-list">
+            @foreach (var w in _history)
+            {
+                <li>
+                    <div class="meal-main">
+                        <span>@w.Date.ToString("d MMM yyyy", Fmt.Fr)</span>
+                        @if (w.BodyFatPercent is { } bf)
+                        {
+                            <span class="muted small">Gras @bf.ToString("0.0", Fmt.Fr) % · masse maigre @Fmt.Kg(NutritionCalculator.LeanMass(w.WeightKg, bf))</span>
+                        }
+                    </div>
+                    <div class="meal-side">
+                        <strong>@Fmt.Kg(w.WeightKg)</strong>
+                        <button class="link danger" @onclick="() => Delete(w)">Supprimer</button>
+                    </div>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    private WeightEntry _entry = new();
+    private List<WeightEntry> _history = [];
+
+    protected override void OnInitialized()
+    {
+        // Pre-fill with the latest reading so only the changed digits need typing.
+        var latest = State.LatestWeight;
+        _entry = new WeightEntry
+        {
+            Date = AppState.Today,
+            WeightKg = latest?.WeightKg ?? 0,
+            BodyFatPercent = latest?.BodyFatPercent,
+        };
+        Refresh();
+    }
+
+    private void Refresh() => _history = State.Weights.OrderByDescending(w => w.Date).ToList();
+
+    private async Task Save()
+    {
+        await State.UpsertWeightAsync(new WeightEntry
+        {
+            Date = _entry.Date,
+            WeightKg = _entry.WeightKg,
+            BodyFatPercent = _entry.BodyFatPercent is > 0 ? _entry.BodyFatPercent : null,
+        });
+        Refresh();
+    }
+
+    private async Task Delete(WeightEntry entry)
+    {
+        await State.DeleteWeightAsync(entry.Date);
+        Refresh();
+    }
+
+    // Vertical scale covers all readings plus the goal, with a small margin.
+    private (double Min, double Max) Range()
+    {
+        var values = _history.Select(w => w.WeightKg).Append(State.Profile.GoalWeightKg).ToList();
+        return (values.Min() - 1, values.Max() + 1);
+    }
+
+    private string Y(double kg)
+    {
+        var (min, max) = Range();
+        double y = 80 - (kg - min) / (max - min) * 80;
+        return y.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private string SparkPoints()
+    {
+        var ordered = _history.OrderBy(w => w.Date).ToList();
+        int days = Math.Max(1, ordered[^1].Date.DayNumber - ordered[0].Date.DayNumber);
+        return string.Join(' ', ordered.Select(w =>
+        {
+            double x = (w.Date.DayNumber - ordered[0].Date.DayNumber) * 300.0 / days;
+            return $"{x.ToString("0.##", CultureInfo.InvariantCulture)},{Y(w.WeightKg)}";
+        }));
+    }
+}

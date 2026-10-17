@@ -1,0 +1,94 @@
+﻿@page "/"
+@inject AppState State
+
+<PageTitle>Aujourd'hui · Calories</PageTitle>
+
+<header class="day-nav">
+    <button class="icon-btn" @onclick="() => Shift(-1)" aria-label="Jour précédent">‹</button>
+    <h1>@Fmt.Day(_day)</h1>
+    <button class="icon-btn" @onclick="() => Shift(1)" disabled="@(_day >= AppState.Today)" aria-label="Jour suivant">›</button>
+</header>
+
+@if (State.CurrentTargets is not { } targets)
+{
+    <section class="card">
+        <h2>Bienvenue</h2>
+        <p>Entre ta première pesée pour calculer ta cible quotidienne.</p>
+        <a class="btn primary" href="poids">Ajouter une pesée</a>
+    </section>
+}
+else
+{
+    var totals = DayTotals.From(_meals);
+    double remaining = targets.TargetKcal - totals.Kcal;
+
+    <section class="card hero">
+        <div class="ring" style="--pct:@(Fmt.Pct(totals.Kcal, targets.TargetKcal).ToString(CultureInfo.InvariantCulture))">
+            <div class="ring-inner">
+                <span class="big">@Fmt.Kcal(Math.Abs(remaining))</span>
+                <span class="muted">@(remaining >= 0 ? "kcal restantes" : "kcal de trop")</span>
+            </div>
+        </div>
+        <div class="hero-stats">
+            <div><span class="muted">Mangé</span><strong>@Fmt.Kcal(totals.Kcal)</strong></div>
+            <div><span class="muted">Cible</span><strong>@Fmt.Kcal(targets.TargetKcal)</strong></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <MacroBar Label="Protéines" Value="totals.ProteinG" Target="targets.ProteinG" Css="prot" />
+        <MacroBar Label="Glucides" Value="totals.CarbsG" Target="targets.CarbsG" Css="carb" />
+        <MacroBar Label="Lipides" Value="totals.FatG" Target="targets.FatG" Css="fat" />
+    </section>
+
+    <section class="card">
+        <div class="row-between">
+            <h2>Repas</h2>
+            <a class="btn small" href="ajouter">＋ Ajouter</a>
+        </div>
+        @if (!_meals.Any())
+        {
+            <p class="muted">Aucun repas pour cette journée.</p>
+        }
+        else
+        {
+            <ul class="meal-list">
+                @foreach (var meal in _meals)
+                {
+                    <li>
+                        <div class="meal-main">
+                            <span class="tag">@Fmt.MealLabel(meal.Type)</span>
+                            <span class="meal-desc">@meal.Description</span>
+                            <span class="muted small">P @Fmt.Grams(meal.ProteinG) · G @Fmt.Grams(meal.CarbsG) · L @Fmt.Grams(meal.FatG)</span>
+                        </div>
+                        <div class="meal-side">
+                            <strong>@Fmt.Kcal(meal.Kcal)</strong>
+                            <button class="link danger" @onclick="() => Delete(meal)">Supprimer</button>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    private DateOnly _day = AppState.Today;
+    private List<Meal> _meals = [];
+
+    protected override void OnParametersSet() => Refresh();
+
+    private void Shift(int days)
+    {
+        _day = _day.AddDays(days);
+        Refresh();
+    }
+
+    private void Refresh() => _meals = State.MealsOn(_day).ToList();
+
+    private async Task Delete(Meal meal)
+    {
+        await State.DeleteMealAsync(meal.Id);
+        Refresh();
+    }
+}

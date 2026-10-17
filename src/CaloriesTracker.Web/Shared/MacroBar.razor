@@ -1,0 +1,18 @@
+@* One macro progress row: consumed vs target. *@
+<div class="macro">
+    <div class="row-between">
+        <span>@Label</span>
+        <span class="muted">@Fmt.Grams(Value) / @Fmt.Grams(Target)</span>
+    </div>
+    <div class="bar">
+        <div class="bar-fill @Css @(Value > Target ? "over" : "")"
+             style="width:@(Fmt.Pct(Value, Target).ToString(CultureInfo.InvariantCulture))%"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public double Value { get; set; }
+    [Parameter] public double Target { get; set; }
+    [Parameter] public string Css { get; set; } = "";
+}

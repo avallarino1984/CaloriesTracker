@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CaloriesTracker.Core/CaloriesTracker.Core.csproj" />
+    <Project Path="src/CaloriesTracker.Web/CaloriesTracker.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CaloriesTracker.Core.Tests/CaloriesTracker.Core.Tests.csproj" />
+  </Folder>
+</Solution>

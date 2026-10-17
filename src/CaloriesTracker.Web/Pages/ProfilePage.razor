@@ -1,0 +1,164 @@
+@page "/profil"
+@inject AppState State
+@inject IJSRuntime JS
+
+<PageTitle>Profil · Calories</PageTitle>
+
+<h1>Profil</h1>
+
+@if (State.CurrentTargets is { } t)
+{
+    var weight = State.LatestWeight!;
+    int age = P.AgeOn(AppState.Today);
+    double mifflin = NutritionCalculator.MifflinStJeor(P.Sex, weight.WeightKg, P.HeightCm, age);
+    double? katch = weight.BodyFatPercent is { } bf ? NutritionCalculator.KatchMcArdle(weight.WeightKg, bf) : null;
+
+    <section class="card">
+        <h2>Ma cible</h2>
+        <div class="hero-stats">
+            <div><span class="muted">Cible / jour</span><strong>@Fmt.Kcal(t.TargetKcal) kcal</strong></div>
+            <div><span class="muted">TDEE</span><strong>@Fmt.Kcal(t.Tdee)</strong></div>
+            <div><span class="muted">BMR</span><strong>@Fmt.Kcal(t.Bmr)</strong></div>
+        </div>
+        <p class="small">
+            Protéines @Fmt.Grams(t.ProteinG) · Glucides @Fmt.Grams(t.CarbsG) · Lipides @Fmt.Grams(t.FatG)
+        </p>
+        <p class="muted small">
+            Méthode : @Fmt.MethodLabel(t.MethodUsed) · basée sur @Fmt.Kg(weight.WeightKg) (@weight.Date.ToString("d MMM", Fmt.Fr)), @age ans.
+            BMR Mifflin @Fmt.Kcal(mifflin)@(katch is { } k ? $" · Katch-McArdle {Fmt.Kcal(k)}" : "").
+        </p>
+        @if (t.WeeklyChangeKg < 0)
+        {
+            <p class="small">
+                Rythme ≈ @Fmt.Kg(-t.WeeklyChangeKg)/semaine
+                @if (t.WeeksToGoal is { } weeks && weeks > 0)
+                {
+                    <span> → @Fmt.Kg(P.GoalWeightKg) vers le @(AppState.Today.AddDays((int)Math.Ceiling(weeks * 7)).ToString("d MMMM yyyy", Fmt.Fr))</span>
+                }
+            </p>
+        }
+        @if (t.TargetKcal < NutritionCalculator.MinimumSafeKcal(P.Sex))
+        {
+            <p class="err small">Cible sous @Fmt.Kcal(NutritionCalculator.MinimumSafeKcal(P.Sex)) kcal : déficit probablement trop agressif.</p>
+        }
+    </section>
+}
+else
+{
+    <section class="card"><p>Ajoute une pesée dans l'onglet Poids pour voir ta cible.</p></section>
+}
+
+<section class="card">
+    <h2>Paramètres</h2>
+    <div class="grid2">
+        <label>Sexe
+            <select @bind="P.Sex" @bind:after="Save">
+                <option value="@Sex.Male">Homme</option>
+                <option value="@Sex.Female">Femme</option>
+            </select>
+        </label>
+        <label>Date de naissance<input type="date" @bind="P.BirthDate" @bind:after="Save" /></label>
+        <label>Taille (cm)<input type="number" inputmode="decimal" @bind="P.HeightCm" @bind:after="Save" /></label>
+        <label>Poids visé (kg)<input type="number" inputmode="decimal" step="0.5" @bind="P.GoalWeightKg" @bind:after="Save" /></label>
+    </div>
+
+    <label>Activité
+        <select @bind="P.ActivityFactor" @bind:culture="CultureInfo.InvariantCulture" @bind:after="Save">
+            @foreach (var (factor, label) in ActivityLevels)
+            {
+                <option value="@factor.ToString(CultureInfo.InvariantCulture)">@label (× @factor.ToString(Fmt.Fr))</option>
+            }
+        </select>
+    </label>
+
+    <label>Objectif
+        <select @bind="P.Deficit" @bind:culture="CultureInfo.InvariantCulture" @bind:after="Save">
+            @foreach (var (deficit, label) in Goals)
+            {
+                <option value="@deficit.ToString(CultureInfo.InvariantCulture)">@label</option>
+            }
+        </select>
+    </label>
+
+    <div class="grid3">
+        <label>Prot. g/kg<input type="number" inputmode="decimal" step="0.1" @bind="P.ProteinPerKg" @bind:after="Save" /></label>
+        <label>Lip. g/kg<input type="number" inputmode="decimal" step="0.05" @bind="P.FatPerKg" @bind:after="Save" /></label>
+        <label>Méthode
+            <select @bind="P.Method" @bind:after="Save">
+                @foreach (var m in Enum.GetValues<BmrMethod>())
+                {
+                    <option value="@m">@Fmt.MethodLabel(m)</option>
+                }
+            </select>
+        </label>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Sauvegarde</h2>
+    <p class="muted small">Les données restent dans ce navigateur. Exporte de temps en temps pour garder une copie.</p>
+    <div class="row-gap">
+        <button class="btn" @onclick="Export">Exporter (JSON)</button>
+        <button class="btn" @onclick="ExportMealLines">Exporter les repas (MEAL)</button>
+        <label class="btn file-btn">Importer
+            <InputFile OnChange="Import" accept=".json,application/json" />
+        </label>
+    </div>
+    @if (_message is not null)
+    {
+        <p class="small @(_messageIsError ? "err" : "good")">@_message</p>
+    }
+</section>
+
+@code {
+    private Profile P => State.Profile;
+    private string? _message;
+    private bool _messageIsError;
+
+    private static readonly (double, string)[] ActivityLevels =
+    [
+        (1.2, "Bureau, pas d'entraînement"),
+        (1.375, "Activité légère, 1-3 entraînements/sem."),
+        (1.4297, "Journée active"),
+        (1.725, "Journée très active"),
+        (2.0, "Sportif de haut niveau"),
+    ];
+
+    private static readonly (double, string)[] Goals =
+    [
+        (0.20, "Perte — déficit 20 %"),
+        (0.15, "Perte — déficit 15 %"),
+        (0.10, "Perte — déficit 10 %"),
+        (0.0, "Maintien"),
+        (-0.10, "Prise de masse — surplus 10 %"),
+    ];
+
+    private Task Save() => State.SaveProfileAsync();
+
+    private async Task Export() =>
+        await Download($"calories-{AppState.Today:yyyy-MM-dd}.json", State.ExportJson(), "application/json");
+
+    private async Task ExportMealLines()
+    {
+        var lines = State.Meals.OrderBy(m => m.Date).ThenBy(m => m.Type).Select(MealLineParser.Format);
+        await Download($"repas-{AppState.Today:yyyy-MM-dd}.txt", string.Join('\n', lines), "text/plain");
+    }
+
+    private Task Download(string fileName, string content, string mime) =>
+        JS.InvokeVoidAsync("calories.download", fileName, content, mime).AsTask();
+
+    private async Task Import(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var reader = new StreamReader(stream);
+            await State.ImportJsonAsync(await reader.ReadToEndAsync());
+            (_message, _messageIsError) = ($"Importé : {State.Meals.Count} repas, {State.Weights.Count} pesées.", false);
+        }
+        catch (Exception ex)
+        {
+            (_message, _messageIsError) = ($"Import impossible : {ex.Message}", true);
+        }
+    }
+}

@@ -1,0 +1,43 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppState State
+
+<div class="app">
+    <main class="content">
+        @if (State.IsLoaded)
+        {
+            @Body
+        }
+        else
+        {
+            <p class="muted center">Chargement…</p>
+        }
+    </main>
+
+    <nav class="tabbar">
+        <NavLink href="" Match="NavLinkMatch.All" class="tab">
+            <span class="tab-icon">◎</span><span>Aujourd'hui</span>
+        </NavLink>
+        <NavLink href="ajouter" class="tab">
+            <span class="tab-icon">＋</span><span>Ajouter</span>
+        </NavLink>
+        <NavLink href="poids" class="tab">
+            <span class="tab-icon">⚖</span><span>Poids</span>
+        </NavLink>
+        <NavLink href="profil" class="tab">
+            <span class="tab-icon">☰</span><span>Profil</span>
+        </NavLink>
+    </nav>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnStateChanged;
+        await State.LoadAsync();
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+}
