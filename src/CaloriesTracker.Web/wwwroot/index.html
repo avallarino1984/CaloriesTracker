@@ -9,7 +9,17 @@
     <meta name="apple-mobile-web-app-title" content="Calories" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Calories</title>
-    <base href="/" />
+    <script>
+        // GitHub Pages serves the app from /<repo>/; everywhere else it runs at the root.
+        (function () {
+            var base = '/';
+            if (location.hostname.endsWith('github.io')) {
+                var first = location.pathname.split('/')[1];
+                if (first) base = '/' + first + '/';
+            }
+            document.write('<base href="' + base + '" />');
+        })();
+    </script>
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
     <!-- If you add any scoped CSS files, uncomment the following to load them

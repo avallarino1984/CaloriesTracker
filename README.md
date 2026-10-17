@@ -5,7 +5,7 @@ PWA Blazor WebAssembly (.NET 10) pour suivre mes calories : Claude estime le rep
 ## Structure
 
 ```
-CaloriesTracker.sln
+CaloriesTracker.slnx
 src/CaloriesTracker.Core/        Logique pure, sans UI (testable)
   Models.cs                      Profile, WeightEntry, Meal, NutritionTargets
   NutritionCalculator.cs         Katch-McArdle, Mifflin-St Jeor, TDEE, macros
@@ -14,7 +14,7 @@ src/CaloriesTracker.Web/         PWA Blazor WASM
   Services/AppState.cs           État + persistance localStorage (à remplacer par Supabase plus tard)
   Pages/                         Aujourd'hui, Ajouter, Poids, Profil
 tests/CaloriesTracker.Core.Tests/  xUnit
-.github/workflows/deploy.yml     Tests + déploiement Azure Static Web Apps
+.github/workflows/deploy.yml     Tests + déploiement GitHub Pages
 ```
 
 ## Lancer en local (Mac)
@@ -29,17 +29,18 @@ tests/CaloriesTracker.Core.Tests/  xUnit
 
 Pour tester sur l'iPhone avant le déploiement : `dotnet run --project src/CaloriesTracker.Web --urls http://0.0.0.0:5000`, puis ouvrir `http://<ip-du-mac>:5000` dans Safari (même Wi-Fi).
 
-## Déployer gratuitement (Azure Static Web Apps)
+## Déployer gratuitement (GitHub Pages)
 
-1. Créer un repo GitHub (privé, c'est correct) et y pousser ce dossier sur `main`.
-2. Portail Azure → **Static Web App** → **Créer** → plan **Free** → source **Other** (on déploie avec notre propre workflow).
-3. Dans la ressource créée : **Manage deployment token** → copier le jeton.
-4. GitHub → repo → **Settings → Secrets and variables → Actions** → nouveau secret `AZURE_STATIC_WEB_APPS_API_TOKEN` = le jeton.
-5. Pousser sur `main` (ou lancer le workflow à la main) : tests, publication, déploiement.
+1. Repo GitHub **public** (exigé par Pages sur un compte gratuit) : Settings → General → Danger Zone → Change visibility.
+2. Settings → **Pages** → Build and deployment → Source : **GitHub Actions**.
+3. Pousser sur `main` (ou Actions → Build and deploy → Run workflow) : tests, publication, déploiement.
+4. L'app est à `https://<utilisateur>.github.io/<repo>/`.
+
+Le chemin de base (`/<repo>/`) est calculé à l'exécution dans `index.html` et le service worker, donc rien à configurer.
 
 ## Installer sur l'iPhone
 
-Safari → l'URL Azure → **Partager** → **Sur l'écran d'accueil**. L'app s'ouvre en plein écran, hors ligne.
+Safari → l'URL GitHub Pages → **Partager** → **Sur l'écran d'accueil**. L'app s'ouvre en plein écran, hors ligne.
 
 ## Données
 
