@@ -7,17 +7,17 @@ public class MealLineParserTests
     [Fact]
     public void ParseLine_ValidLine()
     {
-        var r = MealLineParser.ParseLine("MEAL|2026-10-17|dejeuner|Arepa fromage, oeuf, café Natrel Plus|440|21|43|21");
+        var r = MealLineParser.ParseLine("MEAL|2026-10-17|dejeuner|Rôties, oeufs, café|400|20|40|18");
 
         Assert.True(r.IsSuccess);
         var m = r.Meal!;
         Assert.Equal(new DateOnly(2026, 10, 17), m.Date);
         Assert.Equal(MealType.Dejeuner, m.Type);
-        Assert.Equal("Arepa fromage, oeuf, café Natrel Plus", m.Description);
-        Assert.Equal(440, m.Kcal);
-        Assert.Equal(21, m.ProteinG);
-        Assert.Equal(43, m.CarbsG);
-        Assert.Equal(21, m.FatG);
+        Assert.Equal("Rôties, oeufs, café", m.Description);
+        Assert.Equal(400, m.Kcal);
+        Assert.Equal(20, m.ProteinG);
+        Assert.Equal(40, m.CarbsG);
+        Assert.Equal(18, m.FatG);
     }
 
     [Theory]
@@ -61,10 +61,10 @@ public class MealLineParserTests
     public void ParseMany_IgnoresNonMealLinesAndCodeFences()
     {
         const string pasted = """
-            Environ 440 kcal pour ce déjeuner.
+            Environ 400 kcal pour ce déjeuner.
 
             ```
-            MEAL|2026-10-17|dejeuner|Arepa|440|21|43|21
+            MEAL|2026-10-17|dejeuner|Rôties|400|20|40|18
             ```
             `MEAL|2026-10-17|diner|Salade|350|25|20|18`
             MEAL|2026-10-17|souper|incomplet|500

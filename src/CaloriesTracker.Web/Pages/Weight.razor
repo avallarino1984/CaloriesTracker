@@ -1,5 +1,5 @@
 @page "/poids"
-@inject AppState State
+@inherits StateComponent
 
 <PageTitle>Poids · Calories</PageTitle>
 
@@ -66,7 +66,9 @@
     private WeightEntry _entry = new();
     private List<WeightEntry> _history = [];
 
-    protected override void OnInitialized()
+    protected override void OnStateRefreshed() => Refresh();
+
+    protected override void OnStateInitialized()
     {
         // Pre-fill with the latest reading so only the changed digits need typing.
         var latest = State.LatestWeight;

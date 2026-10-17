@@ -9,7 +9,7 @@
 <section class="card">
     <h2>Coller depuis Claude</h2>
     <p class="muted small">Colle la réponse complète ou seulement les lignes <code>MEAL|…</code>. Plusieurs lignes à la fois, c'est correct.</p>
-    <textarea rows="5" placeholder="MEAL|2026-10-17|dejeuner|Arepa, oeuf, café|440|21|43|21"
+    <textarea rows="5" placeholder="MEAL|2026-10-17|dejeuner|Rôties, oeufs, café|400|20|40|18"
               @bind="_pasted" @bind:event="oninput" @bind:after="Parse"></textarea>
 
     @if (_results.Count > 0)
@@ -42,17 +42,15 @@
 
 <section class="card">
     <h2>Saisie manuelle</h2>
-    <div class="grid2">
-        <label>Date<input type="date" @bind="_manual.Date" /></label>
-        <label>Repas
-            <select @bind="_manual.Type">
-                @foreach (var t in Enum.GetValues<MealType>())
-                {
-                    <option value="@t">@Fmt.MealLabel(t)</option>
-                }
-            </select>
-        </label>
-    </div>
+    <label>Date<input type="date" @bind="_manual.Date" /></label>
+    <label>Repas
+        <select @bind="_manual.Type">
+            @foreach (var t in Enum.GetValues<MealType>())
+            {
+                <option value="@t">@Fmt.MealLabel(t)</option>
+            }
+        </select>
+    </label>
     <label>Description<input type="text" @bind="_manual.Description" placeholder="Poulet, riz, haricots" /></label>
     <div class="grid4">
         <label>kcal<input type="number" inputmode="decimal" min="0" @bind="_manual.Kcal" /></label>

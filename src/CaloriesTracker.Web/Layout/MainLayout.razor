@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
-@implements IDisposable
+@implements IAsyncDisposable
 @inject AppState State
+@inject IJSRuntime JS
 
 <div class="app">
     <main class="content">
@@ -31,13 +32,33 @@
 </div>
 
 @code {
+    private DotNetObjectReference<MainLayout>? _selfRef;
+
     protected override async Task OnInitializedAsync()
     {
         State.Changed += OnStateChanged;
         await State.LoadAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Pull from the cloud each time the app comes back to the foreground (e.g. switching from the Mac to the iPhone).
+            _selfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("calories.onVisible", _selfRef);
+        }
+    }
+
+    [JSInvokable]
+    public Task OnVisible() => State.SyncAsync();
+
     private void OnStateChanged() => InvokeAsync(StateHasChanged);
 
-    public void Dispose() => State.Changed -= OnStateChanged;
+    public async ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        _selfRef?.Dispose();
+        await ValueTask.CompletedTask;
+    }
 }

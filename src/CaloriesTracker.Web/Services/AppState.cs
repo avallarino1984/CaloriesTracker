@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using CaloriesTracker.Core;
 using Microsoft.JSInterop;
@@ -9,16 +10,35 @@ namespace CaloriesTracker.Web.Services;
 public sealed class AppData
 {
     public int Version { get; set; } = 1;
+
+    /// <summary>Last local change; drives last-write-wins sync between devices.</summary>
+    public DateTimeOffset? UpdatedAt { get; set; }
+
     public Profile Profile { get; set; } = new();
     public List<WeightEntry> Weights { get; set; } = [];
     public List<Meal> Meals { get; set; } = [];
+
+    [JsonIgnore]
+    public bool HasEntries => Weights.Count > 0 || Meals.Count > 0;
+}
+
+/// <summary>State of the cloud sync, shown in the Profile page.</summary>
+public enum SyncStatus
+{
+    /// <summary>Not signed in (or Supabase not configured): data stays on this device.</summary>
+    LocalOnly,
+    Syncing,
+    Synced,
+
+    /// <summary>The last upload failed (offline, expired session...). Retried on the next change or refresh.</summary>
+    Pending,
 }
 
 /// <summary>
-/// In-memory app state backed by the browser's localStorage.
-/// Kept behind this class so it can later be swapped for Supabase sync without touching the pages.
+/// App state, saved first to localStorage (works offline) and then synced to Supabase when signed in.
+/// Pages only talk to this class, so the storage strategy can change without touching them.
 /// </summary>
-public sealed class AppState(IJSRuntime js)
+public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
 {
     private const string StorageKey = "calories-tracker:v1";
 
@@ -29,8 +49,15 @@ public sealed class AppState(IJSRuntime js)
     };
 
     private AppData _data = new();
+    private readonly SemaphoreSlim _syncLock = new(1, 1);
 
     public bool IsLoaded { get; private set; }
+    public SyncStatus Sync { get; private set; } = SyncStatus.LocalOnly;
+    public string? SyncError { get; private set; }
+    public DateTimeOffset? LastSyncedAt { get; private set; }
+
+    public bool CloudAvailable => cloud.IsConfigured;
+    public string? CloudEmail => cloud.Email;
 
     /// <summary>Raised after any change so components can re-render.</summary>
     public event Action? Changed;
@@ -70,6 +97,15 @@ public sealed class AppState(IJSRuntime js)
             _data = new AppData();
         }
         IsLoaded = true;
+
+        // Opened from the email link (e.g. on the Mac): sign in with the tokens in the URL.
+        if (await TryTakeAuthRedirectAsync())
+        {
+            return;
+        }
+
+        // Show local data immediately; the cloud pull happens in the background.
+        _ = SyncAsync();
     }
 
     public IEnumerable<Meal> MealsOn(DateOnly day) =>
@@ -115,9 +151,115 @@ public sealed class AppState(IJSRuntime js)
         await SaveAsync();
     }
 
+    // ---------- Cloud ----------
+
+    public Task SendCodeAsync(string email) => cloud.SendCodeAsync(email);
+
+    /// <summary>Signs in, then reconciles: on a first sign-in the cloud copy wins if it exists.</summary>
+    public async Task SignInAsync(string email, string code)
+    {
+        await cloud.VerifyCodeAsync(email, code);
+        await SyncAsync(firstSyncOnDevice: true);
+    }
+
+    private async Task<bool> TryTakeAuthRedirectAsync()
+    {
+        if (!cloud.IsConfigured)
+        {
+            return false;
+        }
+        try
+        {
+            var url = await js.InvokeAsync<string?>("calories.takeAuthRedirect");
+            if (url is null)
+            {
+                return false;
+            }
+            await cloud.VerifyCodeAsync("", url);
+            _ = SyncAsync(firstSyncOnDevice: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            SetStatus(SyncStatus.LocalOnly, ex.Message);
+            return false;
+        }
+    }
+
+    public async Task SignOutAsync()
+    {
+        await cloud.SignOutAsync();
+        SetStatus(SyncStatus.LocalOnly);
+    }
+
+    /// <summary>Pulls or pushes so this device and the cloud agree. Safe to call at any time.</summary>
+    public async Task SyncAsync(bool firstSyncOnDevice = false)
+    {
+        if (!cloud.IsConfigured || !await cloud.IsSignedInAsync())
+        {
+            SetStatus(SyncStatus.LocalOnly);
+            return;
+        }
+
+        await _syncLock.WaitAsync();
+        try
+        {
+            SetStatus(SyncStatus.Syncing);
+            var remote = await cloud.GetDocumentAsync();
+            var action = SyncResolver.Resolve(_data.UpdatedAt, _data.HasEntries, remote?.UpdatedAt, firstSyncOnDevice);
+
+            switch (action)
+            {
+                case SyncAction.UseRemote:
+                    _data = remote!.Data.Deserialize<AppData>(JsonOptions) ?? new AppData();
+                    _data.UpdatedAt = remote.UpdatedAt;
+                    await SaveLocalAsync();
+                    break;
+                case SyncAction.PushLocal:
+                    _data.UpdatedAt ??= NowMs();
+                    await cloud.PutDocumentAsync(ToNode(_data), _data.UpdatedAt.Value);
+                    break;
+            }
+
+            LastSyncedAt = DateTimeOffset.Now;
+            SetStatus(SyncStatus.Synced);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(await cloud.IsSignedInAsync() ? SyncStatus.Pending : SyncStatus.LocalOnly, ex.Message);
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
+    }
+
+    // ---------- Persistence ----------
+
     private async Task SaveAsync()
     {
-        await js.InvokeVoidAsync("localStorage.setItem", StorageKey, ExportJson());
+        _data.UpdatedAt = NowMs();
+        await SaveLocalAsync();
+        Changed?.Invoke();
+
+        // Push in the background; a failure leaves the status "Pending" and the next sync retries.
+        _ = SyncAsync();
+    }
+
+    private Task SaveLocalAsync() =>
+        js.InvokeVoidAsync("localStorage.setItem", StorageKey, ExportJson()).AsTask();
+
+    // Postgres keeps microseconds and .NET keeps 100 ns ticks: round to milliseconds so timestamps compare equal.
+    private static DateTimeOffset NowMs() =>
+        DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
+    private static JsonNode ToNode(AppData data) =>
+        JsonSerializer.SerializeToNode(data, JsonOptions)!;
+
+    private void SetStatus(SyncStatus status, string? error = null)
+    {
+        Sync = status;
+        SyncError = error;
         Changed?.Invoke();
     }
 }

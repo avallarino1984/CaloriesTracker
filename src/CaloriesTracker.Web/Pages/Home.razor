@@ -1,5 +1,5 @@
 ﻿@page "/"
-@inject AppState State
+@inherits StateComponent
 
 <PageTitle>Aujourd'hui · Calories</PageTitle>
 
@@ -76,7 +76,9 @@ else
     private DateOnly _day = AppState.Today;
     private List<Meal> _meals = [];
 
-    protected override void OnParametersSet() => Refresh();
+    protected override void OnStateInitialized() => Refresh();
+
+    protected override void OnStateRefreshed() => Refresh();
 
     private void Shift(int days)
     {

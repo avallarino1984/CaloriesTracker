@@ -10,7 +10,7 @@ public sealed record MealParseResult(int LineNumber, string RawLine, Meal? Meal,
 
 /// <summary>
 /// Parses the standard line produced by Claude for a meal photo:
-/// <c>MEAL|2026-10-17|dejeuner|Arepa, oeuf, café|440|21|43|21</c>
+/// <c>MEAL|2026-10-17|dejeuner|Rôties, oeufs, café|400|20|40|18</c>
 /// (date | meal type | description | kcal | protein g | carbs g | fat g).
 /// </summary>
 public static class MealLineParser

@@ -10,11 +10,14 @@ src/CaloriesTracker.Core/        Logique pure, sans UI (testable)
   Models.cs                      Profile, WeightEntry, Meal, NutritionTargets
   NutritionCalculator.cs         Katch-McArdle, Mifflin-St Jeor, TDEE, macros
   MealLineParser.cs              Lecture / écriture des lignes MEAL|…
+  SyncResolver.cs                Règle de synchro (dernière modification gagne)
 src/CaloriesTracker.Web/         PWA Blazor WASM
-  Services/AppState.cs           État + persistance localStorage (à remplacer par Supabase plus tard)
+  Services/AppState.cs           État, localStorage + synchro
+  Services/SupabaseClient.cs     Auth par code + table user_data (API REST)
   Pages/                         Aujourd'hui, Ajouter, Poids, Profil
 tests/CaloriesTracker.Core.Tests/  xUnit
 .github/workflows/deploy.yml     Tests + déploiement GitHub Pages
+supabase/setup.sql               Table + règles d'accès Supabase
 ```
 
 ## Lancer en local (Mac)
@@ -42,17 +45,27 @@ Le chemin de base (`/<repo>/`) est calculé à l'exécution dans `index.html` et
 
 Safari → l'URL GitHub Pages → **Partager** → **Sur l'écran d'accueil**. L'app s'ouvre en plein écran, hors ligne.
 
-## Données
+## Données et synchro
 
-- Stockées dans le navigateur (localStorage), donc **par appareil**.
-- Profil → **Exporter (JSON)** pour une sauvegarde ; **Importer** pour restaurer ou transférer.
-- Prochaine étape possible : remplacer `AppState` par une synchro Supabase pour partager Mac ↔ iPhone.
+- Toujours enregistrées d'abord dans le navigateur (localStorage) : l'app marche hors ligne.
+- Avec Supabase configuré et une connexion (Profil → Synchronisation, code reçu par courriel), le même document est synchronisé entre appareils :
+  - au démarrage, après chaque modification, et quand l'app revient au premier plan ;
+  - règle « dernière modification gagne » ; à la première connexion d'un appareil, la copie du nuage gagne si elle existe.
+- Profil → **Exporter (JSON)** reste disponible comme copie de secours.
+
+### Configurer Supabase
+
+1. Créer un projet sur supabase.com (plan Free).
+2. SQL Editor → exécuter `supabase/setup.sql` (table `user_data` + règles RLS : chacun ne voit que sa ligne).
+3. Authentication → URL Configuration : **Site URL** = l'adresse GitHub Pages de l'app (et l'ajouter aux Redirect URLs, avec `http://localhost:5260/`).
+   Connexion : l'app accepte le code à 6 chiffres (si le modèle de courriel contient `{{ .Token }}`, ce qui exige un SMTP perso sur le plan gratuit), **le lien du courriel collé sans l'ouvrir**, ou l'adresse obtenue après l'avoir ouvert. Sur l'ordi, cliquer le lien connecte directement l'app ; sur l'iPhone (app d'écran d'accueil, stockage séparé de Safari), on colle le lien dans Profil → Synchronisation.
+4. Remplir `src/CaloriesTracker.Web/wwwroot/appsettings.json` avec la Project URL et la clé **anon / publishable** (publiques par conception). Ne jamais y mettre la clé service_role / secret.
 
 ## Format MEAL
 
 ```
 MEAL|AAAA-MM-JJ|<repas>|description|kcal|prot g|gluc g|lip g
-MEAL|2026-10-17|dejeuner|Arepa fromage, oeuf, café Natrel Plus|440|21|43|21
+MEAL|2026-10-17|dejeuner|Rôties, oeufs, café|400|20|40|18
 ```
 
 `<repas>` : `dejeuner`, `diner`, `souper` ou `collation`. On peut coller la réponse complète de Claude : seules les lignes qui commencent par `MEAL|` sont lues.

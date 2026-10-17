@@ -29,18 +29,18 @@ public enum BmrMethod
 public sealed class Profile
 {
     public Sex Sex { get; set; } = Sex.Male;
-    public double HeightCm { get; set; } = 165;
-    public DateOnly BirthDate { get; set; } = new(1984, 1, 1);
+    public double HeightCm { get; set; } = 170;
+    public DateOnly BirthDate { get; set; } = new(1990, 1, 1);
 
     /// <summary>TDEE multiplier (1.2 = desk job, no training).</summary>
     public double ActivityFactor { get; set; } = 1.2;
 
     /// <summary>Calorie deficit as a fraction of TDEE (0.20 = 20 %). Negative means surplus.</summary>
-    public double Deficit { get; set; } = 0.20;
+    public double Deficit { get; set; } = 0.15;
 
     public double ProteinPerKg { get; set; } = 1.6;
     public double FatPerKg { get; set; } = 0.9;
-    public double GoalWeightKg { get; set; } = 68;
+    public double GoalWeightKg { get; set; } = 70;
     public BmrMethod Method { get; set; } = BmrMethod.Auto;
 
     /// <summary>Age in full years on the given day.</summary>
@@ -61,7 +61,7 @@ public sealed class WeightEntry
     public DateOnly Date { get; set; }
     public double WeightKg { get; set; }
 
-    /// <summary>Body fat percentage (25.8 = 25.8 %), or null when unknown.</summary>
+    /// <summary>Body fat percentage (22.5 = 22.5 %), or null when unknown.</summary>
     public double? BodyFatPercent { get; set; }
 }
 

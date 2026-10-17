@@ -71,9 +71,12 @@ code { font-size: 0.85em; }
 .row-gap { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .grid2, .grid3, .grid4 { display: grid; gap: 10px; }
-.grid2 { grid-template-columns: repeat(2, 1fr); }
-.grid3 { grid-template-columns: repeat(3, 1fr); }
-.grid4 { grid-template-columns: repeat(4, 1fr); }
+.grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Let grid cells shrink below their content's intrinsic width. */
+.grid2 > *, .grid3 > *, .grid4 > * { min-width: 0; }
 
 /* ---------- Bottom tab bar ---------- */
 .tabbar {
@@ -121,6 +124,18 @@ input, select, textarea {
     border-radius: 10px;
     padding: 10px;
 }
+
+input, select { min-width: 0; }
+
+/* iOS Safari gives date inputs a fixed intrinsic width and ignores width: 100% otherwise. */
+input[type=date] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-height: 44px;
+    text-align: left;
+}
+input[type=date]::-webkit-date-and-time-value { text-align: left; }
 
 textarea { resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
 
@@ -241,6 +256,11 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .preview li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); }
 .preview li.ok::before { content: "✓"; color: var(--good); }
 .preview li.err { color: var(--bad); }
+
+/* ---------- Sync status ---------- */
+.sync-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 4px; vertical-align: middle; }
+.sync-dot.ok { background: var(--good); }
+.sync-dot.warn { background: var(--carb); }
 
 /* ---------- Weight page ---------- */
 .spark { width: 100%; height: 80px; margin-top: 12px; overflow: visible; }

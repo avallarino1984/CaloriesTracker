@@ -1,5 +1,5 @@
 @page "/profil"
-@inject AppState State
+@inherits StateComponent
 @inject IJSRuntime JS
 
 <PageTitle>Profil · Calories</PageTitle>
@@ -57,10 +57,10 @@ else
                 <option value="@Sex.Female">Femme</option>
             </select>
         </label>
-        <label>Date de naissance<input type="date" @bind="P.BirthDate" @bind:after="Save" /></label>
         <label>Taille (cm)<input type="number" inputmode="decimal" @bind="P.HeightCm" @bind:after="Save" /></label>
-        <label>Poids visé (kg)<input type="number" inputmode="decimal" step="0.5" @bind="P.GoalWeightKg" @bind:after="Save" /></label>
     </div>
+    <label>Date de naissance<input type="date" @bind="P.BirthDate" @bind:after="Save" /></label>
+    <label>Poids visé (kg)<input type="number" inputmode="decimal" step="0.5" @bind="P.GoalWeightKg" @bind:after="Save" /></label>
 
     <label>Activité
         <select @bind="P.ActivityFactor" @bind:culture="CultureInfo.InvariantCulture" @bind:after="Save">
@@ -94,9 +94,11 @@ else
     </div>
 </section>
 
+<SyncCard />
+
 <section class="card">
     <h2>Sauvegarde</h2>
-    <p class="muted small">Les données restent dans ce navigateur. Exporte de temps en temps pour garder une copie.</p>
+    <p class="muted small">Copie de secours manuelle, en plus de la synchro.</p>
     <div class="row-gap">
         <button class="btn" @onclick="Export">Exporter (JSON)</button>
         <button class="btn" @onclick="ExportMealLines">Exporter les repas (MEAL)</button>

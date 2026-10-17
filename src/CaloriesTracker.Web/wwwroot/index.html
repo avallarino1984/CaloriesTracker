@@ -60,6 +60,22 @@
                 a.click();
                 a.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
+            },
+            // Returns the current URL if it carries a Supabase session (after opening the sign-in link),
+            // then removes the tokens from the address bar.
+            takeAuthRedirect: function () {
+                if (location.hash.indexOf('access_token=') < 0) return null;
+                var url = location.href;
+                history.replaceState(null, '', location.pathname + location.search);
+                return url;
+            },
+            // Notifies Blazor when the app returns to the foreground, to pull fresh data.
+            onVisible: function (dotNetRef) {
+                document.addEventListener('visibilitychange', function () {
+                    if (document.visibilityState === 'visible') {
+                        dotNetRef.invokeMethodAsync('OnVisible');
+                    }
+                });
             }
         };
     </script>
