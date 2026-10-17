@@ -47,6 +47,16 @@
     <script>
         navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
 
+        // When a new version takes over, reload once so the page runs the new code.
+        if (navigator.serviceWorker.controller) {
+            var reloading = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (reloading) return;
+                reloading = true;
+                location.reload();
+            });
+        }
+
         // Small JS helpers called from Blazor.
         window.calories = {
             // Saves text content as a file (export / backup).
