@@ -1,0 +1,53 @@
+@* Apple Watch active calories for one day, and how much of it raises the target. *@
+@inject AppState State
+
+<section class="card">
+    <h2>Activité</h2>
+    <p class="muted small">Apple Watch → Activité → <strong>Calories actives</strong> (anneau rouge). Mets la valeur du soir, ou mets-la à jour pendant la journée.</p>
+    <div class="row-gap activity-row">
+        <input type="number" inputmode="numeric" min="0" step="10" placeholder="kcal actives"
+               @bind="_input" @bind:event="oninput" />
+        <button class="btn" disabled="@(!Changed)" @onclick="Save">Enregistrer</button>
+    </div>
+
+    @if (State.ActiveKcalOn(Day) is var active && active > 0)
+    {
+        double included = NutritionCalculator.IncludedActivityKcal(Targets);
+        <p class="small">
+            @Fmt.Kcal(active) kcal actives
+            − @Fmt.Kcal(included) déjà prévues (facteur × @State.Profile.ActivityFactor.ToString(Fmt.Fr))
+            @if (State.Profile.ActivityBonusShare is > 0 and < 1)
+            {
+                <span>, × @((State.Profile.ActivityBonusShare * 100).ToString("0", Fmt.Fr)) %</span>
+            }
+            = <strong class="@(Targets.ActivityBonusKcal > 0 ? "good" : "")">+@Fmt.Kcal(Targets.ActivityBonusKcal) kcal</strong> à ta cible
+        </p>
+    }
+    @if (State.Profile.ActivityBonusShare <= 0)
+    {
+        <p class="muted small">L'ajout est désactivé dans Profil.</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public DateOnly Day { get; set; }
+    [Parameter, EditorRequired] public NutritionTargets Targets { get; set; } = default!;
+
+    private double? _input;
+    private DateOnly _loadedDay;
+
+    private bool Changed => (_input ?? 0) != State.ActiveKcalOn(Day) && (_input ?? 0) >= 0;
+
+    protected override void OnParametersSet()
+    {
+        // Reload the stored value when switching days, but keep what is being typed otherwise.
+        if (_loadedDay != Day)
+        {
+            _loadedDay = Day;
+            double stored = State.ActiveKcalOn(Day);
+            _input = stored > 0 ? stored : null;
+        }
+    }
+
+    private Task Save() => State.SetActiveKcalAsync(Day, _input ?? 0);
+}

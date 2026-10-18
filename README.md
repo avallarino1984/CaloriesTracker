@@ -63,6 +63,12 @@ Safari → l'URL GitHub Pages → **Partager** → **Sur l'écran d'accueil**. L
    Connexion : l'app accepte le code à 6 chiffres (si le modèle de courriel contient `{{ .Token }}`, ce qui exige un SMTP perso sur le plan gratuit), **le lien du courriel collé sans l'ouvrir**, ou l'adresse obtenue après l'avoir ouvert. Sur l'ordi, cliquer le lien connecte directement l'app ; sur l'iPhone (app d'écran d'accueil, stockage séparé de Safari), on colle le lien dans Profil → Synchronisation.
 4. Remplir `src/CaloriesTracker.Web/wwwroot/appsettings.json` avec la Project URL et la clé **anon / publishable** (publiques par conception). Ne jamais y mettre la clé service_role / secret.
 
+## Activité (Apple Watch)
+
+Sur l'écran Aujourd'hui, carte **Activité** : entrer les **calories actives** de la montre (anneau rouge).
+Le facteur d'activité du profil (ex. × 1,2) compte déjà `TDEE − BMR` kcal d'activité ; seul l'**excédent** est ajouté à la cible du jour (et va aux glucides).
+Profil → « Calories de l'Apple Watch » : excédent complet (défaut), moitié (prudent, les montres surestiment souvent) ou désactivé.
+
 ## Table des aliments (`aliments.json`)
 
 `src/CaloriesTracker.Web/wwwroot/aliments.json` contient les valeurs **des étiquettes** des aliments habituels (par portion indiquée), et des **favoris** (combinaisons, ex. café + 250 ml de lait + stevia).

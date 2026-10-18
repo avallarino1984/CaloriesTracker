@@ -4,7 +4,12 @@
     {
       "id": "natrel-plus-2",
       "nom": "Natrel Plus 2 %",
-      "alias": ["natrel", "natrel plus", "lait protéiné", "lait"],
+      "alias": [
+        "natrel",
+        "natrel plus",
+        "lait protéiné",
+        "lait"
+      ],
       "portion": "1 tasse (250 ml)",
       "kcal": 160,
       "proteines": 18,
@@ -15,7 +20,13 @@
     {
       "id": "pain-pom",
       "nom": "Pain POM",
-      "alias": ["pom", "pan pom", "pain", "rôties", "toast"],
+      "alias": [
+        "pom",
+        "pan pom",
+        "pain",
+        "rôties",
+        "toast"
+      ],
       "portion": "2 tranches (76 g)",
       "kcal": 170,
       "proteines": 7,
@@ -26,7 +37,10 @@
     {
       "id": "stevia",
       "nom": "Stevia",
-      "alias": ["stevia", "sucrant"],
+      "alias": [
+        "stevia",
+        "sucrant"
+      ],
       "portion": "1/2 sachet (0,5 g)",
       "kcal": 0,
       "proteines": 0,
@@ -37,12 +51,31 @@
     {
       "id": "cafe-instantane",
       "nom": "Café instantané",
-      "alias": ["café", "cafe"],
+      "alias": [
+        "café",
+        "cafe"
+      ],
       "portion": "1 c. à thé (2 g)",
       "kcal": 2,
       "proteines": 0.2,
       "glucides": 2,
       "lipides": 0,
+      "source": "étiquette"
+    },
+    {
+      "id": "bunuelo",
+      "nom": "Buñuelo",
+      "alias": [
+        "buñuelo",
+        "buñuelos",
+        "bunuelo",
+        "bunuelos"
+      ],
+      "portion": "1 portion (55 g)",
+      "kcal": 230,
+      "proteines": 3,
+      "glucides": 37,
+      "lipides": 8,
       "source": "étiquette"
     }
   ],
@@ -51,16 +84,38 @@
       "id": "cafe-natrel",
       "nom": "Café au Natrel",
       "composants": [
-        { "aliment": "cafe-instantane", "portions": 1 },
-        { "aliment": "natrel-plus-2", "portions": 1 },
-        { "aliment": "stevia", "portions": 2 }
+        {
+          "aliment": "cafe-instantane",
+          "portions": 1
+        },
+        {
+          "aliment": "natrel-plus-2",
+          "portions": 1
+        },
+        {
+          "aliment": "stevia",
+          "portions": 2
+        }
       ]
     },
     {
       "id": "roties-pom",
       "nom": "2 rôties POM",
       "composants": [
-        { "aliment": "pain-pom", "portions": 1 }
+        {
+          "aliment": "pain-pom",
+          "portions": 1
+        }
+      ]
+    },
+    {
+      "id": "bunuelos-3",
+      "nom": "3 buñuelos",
+      "composants": [
+        {
+          "aliment": "bunuelo",
+          "portions": 3
+        }
       ]
     }
   ]

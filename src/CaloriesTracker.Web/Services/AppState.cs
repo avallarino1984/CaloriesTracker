@@ -18,6 +18,9 @@ public sealed class AppData
     public List<WeightEntry> Weights { get; set; } = [];
     public List<Meal> Meals { get; set; } = [];
 
+    /// <summary>Active calories per day (Apple Watch). Missing in older backups, hence the default.</summary>
+    public List<ActivityEntry> Activities { get; set; } = [];
+
     [JsonIgnore]
     public bool HasEntries => Weights.Count > 0 || Meals.Count > 0;
 }
@@ -65,6 +68,7 @@ public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
     public Profile Profile => _data.Profile;
     public IReadOnlyList<WeightEntry> Weights => _data.Weights;
     public IReadOnlyList<Meal> Meals => _data.Meals;
+    public IReadOnlyList<ActivityEntry> Activities => _data.Activities;
 
     public static DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
 
@@ -88,6 +92,7 @@ public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
             if (!string.IsNullOrWhiteSpace(json))
             {
                 _data = JsonSerializer.Deserialize<AppData>(json, JsonOptions) ?? new AppData();
+                _data.Activities ??= [];
             }
         }
         catch (Exception ex)
@@ -106,6 +111,27 @@ public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
 
         // Show local data immediately; the cloud pull happens in the background.
         _ = SyncAsync();
+    }
+
+    /// <summary>Targets for a given day, including that day's activity bonus.</summary>
+    public NutritionTargets? TargetsFor(DateOnly day) =>
+        CurrentTargets is { } t
+            ? NutritionCalculator.AdjustForActivity(t, ActiveKcalOn(day), Profile.ActivityBonusShare)
+            : null;
+
+    /// <summary>Active calories entered for the day, or 0.</summary>
+    public double ActiveKcalOn(DateOnly day) =>
+        _data.Activities.FirstOrDefault(a => a.Date == day)?.ActiveKcal ?? 0;
+
+    /// <summary>Sets the day's active calories (replaces the previous value); 0 clears it.</summary>
+    public async Task SetActiveKcalAsync(DateOnly day, double activeKcal)
+    {
+        _data.Activities.RemoveAll(a => a.Date == day);
+        if (activeKcal > 0)
+        {
+            _data.Activities.Add(new ActivityEntry { Date = day, ActiveKcal = Math.Round(activeKcal) });
+        }
+        await SaveAsync();
     }
 
     public IEnumerable<Meal> MealsOn(DateOnly day) =>
@@ -147,6 +173,7 @@ public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
     {
         var data = JsonSerializer.Deserialize<AppData>(json, JsonOptions)
                    ?? throw new JsonException("Fichier vide.");
+        data.Activities ??= [];
         _data = data;
         await SaveAsync();
     }
@@ -219,6 +246,7 @@ public sealed class AppState(IJSRuntime js, SupabaseClient cloud)
             {
                 case SyncAction.UseRemote:
                     _data = remote!.Data.Deserialize<AppData>(JsonOptions) ?? new AppData();
+                    _data.Activities ??= [];
                     _data.UpdatedAt = remote.UpdatedAt;
                     await SaveLocalAsync();
                     break;

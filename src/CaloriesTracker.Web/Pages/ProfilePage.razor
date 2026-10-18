@@ -80,6 +80,16 @@ else
         </select>
     </label>
 
+    <label>Calories de l'Apple Watch
+        <select @bind="P.ActivityBonusShare" @bind:culture="CultureInfo.InvariantCulture" @bind:after="Save">
+            @foreach (var (share, label) in ActivityShares)
+            {
+                <option value="@share.ToString(CultureInfo.InvariantCulture)">@label</option>
+            }
+        </select>
+    </label>
+    <p class="muted small activity-help">Ton facteur d'activité compte déjà une partie de tes mouvements : seules les calories actives au-delà sont ajoutées à la cible du jour.</p>
+
     <div class="grid3">
         <label>Prot. g/kg<input type="number" inputmode="decimal" step="0.1" @bind="P.ProteinPerKg" @bind:after="Save" /></label>
         <label>Lip. g/kg<input type="number" inputmode="decimal" step="0.05" @bind="P.FatPerKg" @bind:after="Save" /></label>
@@ -124,6 +134,13 @@ else
         (1.4297, "Journée active"),
         (1.725, "Journée très active"),
         (2.0, "Sportif de haut niveau"),
+    ];
+
+    private static readonly (double, string)[] ActivityShares =
+    [
+        (1.0, "Ajouter l'excédent (recommandé)"),
+        (0.5, "Ajouter la moitié de l'excédent (prudent)"),
+        (0.0, "Ne pas ajouter"),
     ];
 
     private static readonly (double, string)[] Goals =

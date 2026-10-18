@@ -55,6 +55,25 @@ public static class NutritionCalculator
         return new NutritionTargets(method, bmr, tdee, target, protein, fat, carbs, weeklyChange, weeksToGoal);
     }
 
+    /// <summary>Activity calories already assumed by the activity factor: TDEE − BMR.</summary>
+    public static double IncludedActivityKcal(NutritionTargets targets) => targets.Tdee - targets.Bmr;
+
+    /// <summary>
+    /// Raises the day's target with measured active calories. Only the part above the activity already
+    /// included in the activity factor counts (otherwise it would be counted twice), times <paramref name="share"/>.
+    /// The extra calories go to carbohydrates; protein and fat targets stay weight-based.
+    /// </summary>
+    public static NutritionTargets AdjustForActivity(NutritionTargets targets, double activeKcal, double share)
+    {
+        double excess = Math.Max(0, activeKcal - IncludedActivityKcal(targets));
+        double bonus = excess * Math.Clamp(share, 0, 1);
+
+        // Always rebuild from the base target so re-adjusting never stacks or leaves stale carbs.
+        double target = targets.BaseTargetKcal + bonus;
+        double carbs = Math.Max(0, (target - targets.ProteinG * KcalPerGramProtein - targets.FatG * KcalPerGramFat) / KcalPerGramCarbs);
+        return targets with { TargetKcal = target, CarbsG = carbs, ActivityBonusKcal = bonus };
+    }
+
     /// <summary>Minimum sensible daily intake; below this the UI shows a warning.</summary>
     public static double MinimumSafeKcal(Sex sex) => sex == Sex.Male ? 1500 : 1200;
 

@@ -43,6 +43,12 @@ public sealed class Profile
     public double GoalWeightKg { get; set; } = 70;
     public BmrMethod Method { get; set; } = BmrMethod.Auto;
 
+    /// <summary>
+    /// Share of the measured active calories (e.g. Apple Watch) added to the day's target,
+    /// counted only above the activity already included in <see cref="ActivityFactor"/>. 0 disables it.
+    /// </summary>
+    public double ActivityBonusShare { get; set; } = 1.0;
+
     /// <summary>Age in full years on the given day.</summary>
     public int AgeOn(DateOnly day)
     {
@@ -63,6 +69,13 @@ public sealed class WeightEntry
 
     /// <summary>Body fat percentage (22.5 = 22.5 %), or null when unknown.</summary>
     public double? BodyFatPercent { get; set; }
+}
+
+/// <summary>Active calories burned on a day, as measured by a watch (Apple Watch "Active Energy").</summary>
+public sealed class ActivityEntry
+{
+    public DateOnly Date { get; set; }
+    public double ActiveKcal { get; set; }
 }
 
 /// <summary>One logged meal with its estimated nutrition.</summary>
@@ -88,7 +101,12 @@ public sealed record NutritionTargets(
     double FatG,
     double CarbsG,
     double WeeklyChangeKg,
-    double? WeeksToGoal);
+    double? WeeksToGoal,
+    double ActivityBonusKcal = 0)
+{
+    /// <summary>Daily target before any activity bonus.</summary>
+    public double BaseTargetKcal => TargetKcal - ActivityBonusKcal;
+}
 
 /// <summary>Totals for a set of meals.</summary>
 public sealed record DayTotals(double Kcal, double ProteinG, double CarbsG, double FatG)
