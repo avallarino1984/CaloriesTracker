@@ -17,6 +17,10 @@ var supabase = new SupabaseOptions
 builder.Services.AddSingleton(supabase);
 builder.Services.AddSingleton<SupabaseClient>();
 
+// Static files of the app (aliments.json), relative to the base path.
+builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddSingleton<FoodCatalogService>();
+
 // Single user, single browser tab: one shared state instance is enough.
 builder.Services.AddSingleton<AppState>();
 

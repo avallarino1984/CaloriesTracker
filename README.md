@@ -11,6 +11,7 @@ src/CaloriesTracker.Core/        Logique pure, sans UI (testable)
   NutritionCalculator.cs         Katch-McArdle, Mifflin-St Jeor, TDEE, macros
   MealLineParser.cs              Lecture / écriture des lignes MEAL|…
   SyncResolver.cs                Règle de synchro (dernière modification gagne)
+  FoodCatalog.cs                 Table des aliments + favoris (aliments.json)
 src/CaloriesTracker.Web/         PWA Blazor WASM
   Services/AppState.cs           État, localStorage + synchro
   Services/SupabaseClient.cs     Auth par code + table user_data (API REST)
@@ -61,6 +62,13 @@ Safari → l'URL GitHub Pages → **Partager** → **Sur l'écran d'accueil**. L
    Option de secours, lien par courriel : Authentication → URL Configuration : **Site URL** = l'adresse GitHub Pages de l'app (et l'ajouter aux Redirect URLs, avec `http://localhost:5260/`).
    Connexion : l'app accepte le code à 6 chiffres (si le modèle de courriel contient `{{ .Token }}`, ce qui exige un SMTP perso sur le plan gratuit), **le lien du courriel collé sans l'ouvrir**, ou l'adresse obtenue après l'avoir ouvert. Sur l'ordi, cliquer le lien connecte directement l'app ; sur l'iPhone (app d'écran d'accueil, stockage séparé de Safari), on colle le lien dans Profil → Synchronisation.
 4. Remplir `src/CaloriesTracker.Web/wwwroot/appsettings.json` avec la Project URL et la clé **anon / publishable** (publiques par conception). Ne jamais y mettre la clé service_role / secret.
+
+## Table des aliments (`aliments.json`)
+
+`src/CaloriesTracker.Web/wwwroot/aliments.json` contient les valeurs **des étiquettes** des aliments habituels (par portion indiquée), et des **favoris** (combinaisons, ex. café + 250 ml de lait + stevia).
+- Dans l'app : onglet Ajouter → **Favoris** → choisir, ajuster la quantité (× 0,5), Ajouter.
+- Pour Claude : le même fichier est ajouté au projet, pour qu'il utilise ces valeurs exactes.
+- Pour ajouter un aliment : copier un bloc, changer `id` (unique), `nom`, `portion` et les valeurs, puis commit/push (un test vérifie que le fichier reste valide).
 
 ## Format MEAL
 

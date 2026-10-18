@@ -1,10 +1,58 @@
 @page "/ajouter"
 @inject AppState State
 @inject NavigationManager Nav
+@inject FoodCatalogService Foods
 
 <PageTitle>Ajouter · Calories</PageTitle>
 
 <h1>Ajouter un repas</h1>
+
+@if (_catalog is not null && (_catalog.Favorites.Count > 0 || _catalog.Foods.Count > 0))
+{
+    <section class="card">
+        <h2>Favoris</h2>
+        <p class="muted small">Valeurs exactes des étiquettes (aliments.json).</p>
+        <div class="chips">
+            @foreach (var fav in _catalog.Favorites)
+            {
+                <button class="chip @(_selFavorite == fav ? "on" : "")" @onclick="() => Select(fav)">★ @fav.Name</button>
+            }
+            @foreach (var food in _catalog.Foods)
+            {
+                <button class="chip @(_selFood == food ? "on" : "")" @onclick="() => Select(food)">@food.Name</button>
+            }
+        </div>
+
+        @if (Selected is { } values)
+        {
+            <div class="fav-detail">
+                <p class="small">@SelectedLabel</p>
+                <div class="row-between">
+                    <div class="stepper">
+                        <button class="icon-btn" disabled="@(_qty <= 0.5)" @onclick="() => _qty -= 0.5" aria-label="Moins">−</button>
+                        <strong>× @_qty.ToString("0.#", Fmt.Fr)</strong>
+                        <button class="icon-btn" @onclick="() => _qty += 0.5" aria-label="Plus">+</button>
+                    </div>
+                    <select class="type-select" @bind="_favType">
+                        @foreach (var t in Enum.GetValues<MealType>())
+                        {
+                            <option value="@t">@Fmt.MealLabel(t)</option>
+                        }
+                    </select>
+                </div>
+                <p class="small">
+                    <strong>@Fmt.Kcal(values.Kcal) kcal</strong>
+                    · P @Fmt.Grams(values.ProteinG) · G @Fmt.Grams(values.CarbsG) · L @Fmt.Grams(values.FatG)
+                </p>
+                <button class="btn primary full" @onclick="SaveFavorite">Ajouter</button>
+            </div>
+        }
+    </section>
+}
+@if (Foods.Error is { } catalogError)
+{
+    <p class="err small">@catalogError</p>
+}
 
 <section class="card">
     <h2>Coller depuis Claude</h2>
@@ -62,6 +110,49 @@
 </section>
 
 @code {
+    private FoodCatalog? _catalog;
+    private Favorite? _selFavorite;
+    private Food? _selFood;
+    private double _qty = 1;
+    private MealType _favType = GuessMealType();
+
+    protected override async Task OnInitializedAsync() => _catalog = await Foods.GetAsync();
+
+    private void Select(Favorite favorite)
+    {
+        _selFavorite = favorite;
+        _selFood = null;
+        _qty = 1;
+    }
+
+    private void Select(Food food)
+    {
+        _selFood = food;
+        _selFavorite = null;
+        _qty = 1;
+    }
+
+    // Nutrition of the current selection times the chosen quantity, or null if nothing is selected.
+    private NutritionValues? Selected =>
+        _selFavorite is { } fav ? _catalog!.For(fav, _qty)
+        : _selFood is { } food ? FoodCatalog.For(food, _qty)
+        : null;
+
+    private string SelectedLabel =>
+        _selFood is { } food ? $"{food.Name} — {_qty.ToString("0.#", Fmt.Fr)} × {food.Portion}"
+        : _selFavorite is { } fav ? (_qty == 1 ? fav.Name : $"{fav.Name} × {_qty.ToString("0.#", Fmt.Fr)}")
+        : "";
+
+    private async Task SaveFavorite()
+    {
+        if (Selected is not { } values)
+        {
+            return;
+        }
+        await State.AddMealsAsync([FoodCatalog.ToMeal(SelectedLabel, values, AppState.Today, _favType)]);
+        Nav.NavigateTo("");
+    }
+
     private string? _pasted;
     private List<MealParseResult> _results = [];
     private Meal _manual = NewManual();

@@ -252,6 +252,22 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 }
 
 /* ---------- Add page ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fav-detail { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper .icon-btn { background: var(--accent-soft); color: var(--accent); font-size: 1.3rem; }
+.type-select { width: auto; }
 .preview { list-style: none; padding: 0; margin: 10px 0; font-size: 0.9rem; }
 .preview li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); }
 .preview li.ok::before { content: "✓"; color: var(--good); }
